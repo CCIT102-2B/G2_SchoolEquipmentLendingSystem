@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Equipment Lending System</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+<header class="topbar">
+  <div class="brand"><div class="logo">↗</div><span>Student <em>Equipment Lending</em></span></div>
+  <div class="top-right">
+    <select class="role-switch" id="roleSwitch" aria-label="Choose demo role"><option value="student">Student view</option><option value="admin">Admin view</option></select>
+    <div class="avatar" id="avatar">S</div>
+  </div>
+</header>
+<main class="layout">
+  <section class="welcome">
+    <div><div class="eyebrow">CAMPUS RESOURCE CENTER</div><h1 id="greeting">Borrow what you need.</h1><p id="subGreeting">Find learning materials and keep your studies moving.</p></div>
+    <div class="date" id="today"></div>
+  </section>
+  <section class="stats" aria-label="Inventory overview">
+    <div class="stat"><div><div class="stat-label">Total items</div><div class="stat-num" id="totalStat">45</div></div><div class="stat-icon">📚</div></div>
+    <div class="stat"><div><div class="stat-label">Available now</div><div class="stat-num" id="availableStat">33</div></div><div class="stat-icon">✅</div></div>
+    <div class="stat"><div><div class="stat-label">Currently borrowed</div><div class="stat-num" id="borrowedStat">12</div></div><div class="stat-icon">🎒</div></div>
+    <div class="stat"><div><div class="stat-label">My requests</div><div class="stat-num" id="requestsStat">0</div></div><div class="stat-icon">📝</div></div>
+  </section>
+  <section>
+    <div class="section-head"><div><h2 id="itemsHeading">Explore the collection</h2><p>Books, calculators, and study essentials in one place.</p></div>
+      <div class="controls"><div class="search"><input id="searchInput" type="search" placeholder="Search items..." aria-label="Search items"></div><select id="categoryFilter" aria-label="Filter by category"><option value="all">All categories</option><option>Books</option><option>Calculators</option><option>Stationery</option><option>Technology</option></select></div>
+    </div>
+    <div id="adminInventoryTools" class="admin-only" style="display:none;margin:0 0 16px">
+      <button class="btn" type="button" onclick="openItemEditor()">＋ Add inventory item</button>
+      <span style="font-size:12px;color:var(--muted);margin-left:10px">Add new items or edit existing stock details.</span>
+    </div>
+    <div class="items" id="itemsGrid"></div>
+  </section>
+  <section class="lower-grid">
+    <div class="panel"><h2 id="requestsHeading">My borrowing requests</h2><p class="panel-sub" id="requestsSub">Keep track of your requests and return dates.</p>
+      <div class="table-wrap"><table><thead><tr><th>Item</th><th>Requested</th><th>Due date</th><th>Status</th><th class="admin-only">Action</th></tr></thead><tbody id="requestsBody"></tbody></table></div>
+      <div class="empty" id="requestsEmpty">No borrowing requests yet. Browse the collection to get started.</div>
+    </div>
+    <div class="panel"><h2>How it works</h2><p class="panel-sub">Three simple steps to borrow an item.</p>
+      <div class="activity"><div class="activity-icon">🔎</div><div><strong>1. Find an item</strong><small>Search the collection and check availability.</small></div></div>
+      <div class="activity"><div class="activity-icon">📨</div><div><strong>2. Request to borrow</strong><small>Send a request for the item you need.</small></div></div>
+      <div class="activity"><div class="activity-icon">🤝</div><div><strong>3. Pick up and return</strong><small>Collect approved items and return them on time.</small></div></div>
+      <div style="margin-top:15px;padding:12px;border-radius:11px;background:var(--surface2);font-size:11px;color:var(--muted)">Demo prototype · Sample data only. Requests are saved in this browser.</div>
+    </div>
+  </section>
+  <div class="footer">Student Equipment Lending System · Inventory Management Prototype</div>
+</main>
+</div>
+<div class="modal-backdrop" id="borrowModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <form class="modal" id="borrowForm">
+    <div class="modal-head"><h2 id="modalTitle">Request an item</h2><button type="button" class="close" id="closeModal" aria-label="Close">×</button></div>
+    <div id="selectedItemInfo" style="display:flex;gap:12px;align-items:center;padding:12px;background:var(--surface2);border-radius:12px"><div id="modalEmoji" style="font-size:35px">📚</div><div><strong id="modalItemName">Item name</strong><div id="modalStock" style="font-size:12px;color:var(--muted)">Available</div></div></div>
+    <div class="field"><label for="studentName">Full name</label><input id="studentName" required placeholder="e.g. Alex Santos" maxlength="80"></div>
+    <div class="field"><label for="studentId">Student ID</label><input id="studentId" required placeholder="e.g. 2026-00123" maxlength="30"></div>
+    <div class="field"><label for="borrowDate">Borrow date</label><input id="borrowDate" type="date" required></div>
+    <div class="field"><label for="dueDate">Expected return date</label><input id="dueDate" type="date" required></div>
+    <p class="modal-note">Submitting a request does not guarantee approval. Please wait for the resource center to confirm.</p>
+    <div class="modal-actions"><button type="button" class="btn btn-outline" id="cancelModal">Cancel</button><button type="submit" class="btn">Submit request</button></div>
+  </form>
+</div>
+<div class="modal-backdrop" id="itemEditorModal" role="dialog" aria-modal="true" aria-labelledby="itemEditorTitle">
+  <form class="modal" id="itemEditorForm">
+    <div class="modal-head"><h2 id="itemEditorTitle">Add inventory item</h2><button type="button" class="close" onclick="closeItemEditor()" aria-label="Close">×</button></div>
+    <input type="hidden" id="editItemId">
+    <div class="field"><label for="itemName">Item name</label><input id="itemName" required maxlength="80" placeholder="e.g. Scientific Calculator"></div>
+    <div class="field"><label for="itemCategory">Category</label><select id="itemCategory" required style="width:100%"><option>Books</option><option>Calculators</option><option>Stationery</option><option>Technology</option></select></div>
+    <div class="field"><label for="itemEmoji">Icon / emoji</label><input id="itemEmoji" required maxlength="8" value="📦" placeholder="📦"></div>
+    <div class="field"><label for="itemDesc">Description</label><input id="itemDesc" required maxlength="120" placeholder="Short item description"></div>
+    <div class="field"><label for="itemTotal">Total stock quantity</label><input id="itemTotal" type="number" required min="1" step="1" value="1"></div>
+    <p class="modal-note" id="stockEditNote">New items will start with all units available. For existing items, borrowed units will be kept in the count.</p>
+    <div class="modal-actions"><button type="button" class="btn btn-outline" onclick="closeItemEditor()">Cancel</button><button type="submit" class="btn">Save item</button></div>
+  </form>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script src="script.js"></script>
+</body>
+</html>
