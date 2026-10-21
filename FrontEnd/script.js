@@ -1,78 +1,386 @@
-const seedItems=[
-{id:1,name:"Scientific Calculator",category:"Calculators",emoji:"🧮",desc:"For math, science and exams",total:10,available:7},
-{id:2,name:"Basic Calculator",category:"Calculators",emoji:"🔢",desc:"Everyday calculations",total:12,available:9},
-{id:3,name:"Mathematics Textbook",category:"Books",emoji:"📘",desc:"Mathematics learning resource",total:15,available:12},
-{id:4,name:"English Dictionary",category:"Books",emoji:"📖",desc:"Definitions and vocabulary",total:8,available:5},
-{id:5,name:"Scientific Notebook",category:"Stationery",emoji:"📓",desc:"Notes, lessons and practice",total:20,available:17},
-{id:6,name:"Geometry Set",category:"Stationery",emoji:"📐",desc:"Ruler, compass and protractor",total:10,available:8},
-{id:7,name:"Laptop",category:"Technology",emoji:"💻",desc:"For schoolwork and research",total:5,available:2},
-{id:8,name:"USB Flash Drive",category:"Technology",emoji:"💾",desc:"For transferring class files",total:8,available:6}
-];
-const defaultRequests=[
-{id:101,itemId:3,itemName:"Mathematics Textbook",emoji:"📘",student:"Jamie Cruz",studentId:"2026-00108",requested:"2026-10-14",due:"2026-10-20",status:"Approved"},
-{id:102,itemId:1,itemName:"Scientific Calculator",emoji:"🧮",student:"Morgan Lee",studentId:"2026-00112",requested:"2026-10-15",due:"2026-10-18",status:"Pending"}
-];
-let items,requests,selectedItem=null,role="student";
-try{items=JSON.parse(localStorage.getItem("cb_items"))||structuredClone(seedItems);requests=JSON.parse(localStorage.getItem("cb_requests"))||structuredClone(defaultRequests)}catch(e){items=structuredClone(seedItems);requests=structuredClone(defaultRequests)}
-const $=id=>document.getElementById(id);
-const today=new Date();today.setHours(0,0,0,0);
-const dateStr=d=>{const x=new Date(d+"T12:00:00");return x.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})};
-const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-$("today").textContent=today.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
-$("borrowDate").value=iso(today);$("borrowDate").min=iso(today);
-let minDue=new Date(today);minDue.setDate(minDue.getDate()+1);$("dueDate").value=iso(minDue);$("dueDate").min=iso(minDue);
-function save(){localStorage.setItem("cb_items",JSON.stringify(items));localStorage.setItem("cb_requests",JSON.stringify(requests))}
-function toast(msg){$("toast").textContent=msg;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),2600)}
-function renderStats(){$("totalStat").textContent=items.reduce((s,i)=>s+i.total,0);$("availableStat").textContent=items.reduce((s,i)=>s+i.available,0);$("borrowedStat").textContent=items.reduce((s,i)=>s+i.total-i.available,0);$("requestsStat").textContent=role==="admin"?requests.filter(r=>r.status==="Pending").length:requests.filter(r=>r.studentId==="MY-DEMO-ID").length}
-function renderItems(){
- const q=$("searchInput").value.toLowerCase(),cat=$("categoryFilter").value;
- const shown=items.filter(i=>(cat==="all"||i.category===cat)&&(i.name.toLowerCase().includes(q)||i.category.toLowerCase().includes(q)||i.desc.toLowerCase().includes(q)));
- $("itemsGrid").innerHTML=shown.map(i=>`<article class="item-card"><div class="item-visual"><span>${i.emoji}</span><span class="available ${i.available===0?"unavailable":""}">${i.available===0?"Unavailable":"Available"}</span></div><div class="category">${i.category}</div><h3>${i.name}</h3><div class="item-desc">${i.desc}</div><div class="item-bottom"><span class="stock">${i.available} of ${i.total} available</span>${role==="admin"?`<button class="btn btn-small btn-outline" onclick="openItemEditor(${i.id})">Edit item</button>`:`<button class="btn btn-small" ${i.available===0?"disabled":""} onclick="openBorrow(${i.id})">Borrow item ↗</button>`}</div></article>`).join("")||'<div class="empty" style="grid-column:1/-1">No items match your search.</div>';
-}
-window.openItemEditor=id=>{
- if(role!=="admin"){toast("Switch to Admin view to manage inventory.");return}
- const item=items.find(i=>i.id===id);
- $("itemEditorForm").reset();
- $("editItemId").value=item?item.id:"";
- $("itemEditorTitle").textContent=item?"Edit inventory item":"Add inventory item";
- $("itemName").value=item?item.name:"";
- $("itemCategory").value=item?item.category:"Books";
- $("itemEmoji").value=item?item.emoji:"📦";
- $("itemDesc").value=item?item.desc:"";
- $("itemTotal").value=item?item.total:1;
- $("stockEditNote").textContent=item?`Currently ${item.total-item.available} unit(s) borrowed. You cannot set total stock below the number already borrowed.`:"New items will start with all units available.";
- $("itemEditorModal").classList.add("show");
+// Sample Mock Accounts
+const accounts = {
+    students: [
+        { studentId: "2024-0001", password: "student123", name: "Juan Dela Cruz" },
+        { studentId: "2024-0002", password: "student123", name: "Maria Clara" }
+    ],
+    admin: { username: "admin", password: "admin123", name: "System Administrator" }
 };
-window.closeItemEditor=()=>$("itemEditorModal").classList.remove("show");
-$("itemEditorModal").addEventListener("click",e=>{if(e.target===$("itemEditorModal"))closeItemEditor()});
-$("itemEditorForm").addEventListener("submit",e=>{
- e.preventDefault();
- if(role!=="admin"){toast("Only the admin view can manage inventory.");return}
- const name=$("itemName").value.trim(),category=$("itemCategory").value,emoji=$("itemEmoji").value.trim(),desc=$("itemDesc").value.trim(),total=Number($("itemTotal").value),editId=Number($("editItemId").value);
- if(!name||!emoji||!desc||!Number.isInteger(total)||total<1){toast("Enter valid item details and stock quantity.");return}
- const existing=items.find(i=>i.id===editId);
- if(existing){
-   const borrowed=existing.total-existing.available;
-   if(total<borrowed){toast(`Total stock cannot be below ${borrowed} borrowed unit(s).`);return}
-   Object.assign(existing,{name,category,emoji,desc,total,available:total-borrowed});
-   requests.forEach(r=>{if(r.itemId===existing.id){r.itemName=name;r.emoji=emoji}});
-   toast("Inventory item updated.");
- }else{
-   if(items.some(i=>i.name.toLowerCase()===name.toLowerCase())){toast("An item with that name already exists.");return}
-   items.push({id:Date.now(),name,category,emoji,desc,total,available:total});
-   toast("New inventory item added.");
- }
- save();closeItemEditor();render();
+
+let currentUser = null;
+let currentRole = 'student';
+
+// Initial Mock Data for Equipment with Quantity/Stock
+let equipmentList = [
+    { id: 1, name: "Dell Latitude Laptop", category: "Computers", totalStock: 5, borrowed: 1 },
+    { id: 2, name: "Canon DSLR Camera", category: "Media", totalStock: 3, borrowed: 0 },
+    { id: 3, name: "Epson Multimedia Projector", category: "Classroom", totalStock: 2, borrowed: 1 },
+    { id: 4, name: "Lab Quest Physics Sensor", category: "Science", totalStock: 4, borrowed: 0 },
+    { id: 5, name: "Basketball (Official Size)", category: "Sports", totalStock: 10, borrowed: 2 }
+];
+
+let requestList = [
+    { id: 101, equipmentId: 3, studentId: "2024-0001", studentName: "Juan Dela Cruz", status: "Approved" }
+];
+
+// DOM Elements
+const loginContainer = document.getElementById('login-container');
+const appContainer = document.getElementById('app-container');
+const loginForm = document.getElementById('login-form');
+const loginIdInput = document.getElementById('login-id');
+const loginPasswordInput = document.getElementById('login-password');
+const loginError = document.getElementById('login-error');
+const usernameLabel = document.getElementById('username-label');
+
+const btnLogout = document.getElementById('btn-logout');
+const displayUserName = document.getElementById('display-user-name');
+const displayUserRole = document.getElementById('display-user-role');
+
+const navLinks = document.querySelectorAll('.nav-links li');
+const contentSections = document.querySelectorAll('.content-section');
+const catalogGrid = document.getElementById('catalog-grid');
+const recentEquipmentList = document.getElementById('recent-equipment-list');
+const myLoansTbody = document.getElementById('my-loans-tbody');
+const adminApprovalTbody = document.getElementById('admin-approval-tbody');
+
+const totalEquipmentEl = document.getElementById('total-equipment');
+const availableEquipmentEl = document.getElementById('available-equipment');
+const borrowedEquipmentEl = document.getElementById('borrowed-equipment');
+
+const borrowModal = document.getElementById('borrow-modal');
+const addEquipmentModal = document.getElementById('add-equipment-modal');
+const borrowForm = document.getElementById('borrow-form');
+const addEquipmentForm = document.getElementById('add-equipment-form');
+const modalEquipmentId = document.getElementById('modal-equipment-id');
+const modalEquipmentName = document.getElementById('modal-equipment-name');
+
+// --- LOGIN FUNCTIONALITY ---
+function switchLoginTab(role) {
+    currentRole = role;
+    document.getElementById('tab-student').classList.toggle('active', role === 'student');
+    document.getElementById('tab-admin').classList.toggle('active', role === 'admin');
+    usernameLabel.textContent = role === 'student' ? 'Student ID' : 'Admin Username';
+    loginIdInput.placeholder = role === 'student' ? 'Enter Student ID (e.g. 2024-0001)' : 'Enter Admin Username';
+    loginError.textContent = '';
+}
+
+loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const idVal = loginIdInput.value.trim();
+    const passVal = loginPasswordInput.value.trim();
+
+    if (currentRole === 'student') {
+        const student = accounts.students.find(s => s.studentId === idVal && s.password === passVal);
+        if (student) {
+            currentUser = { role: 'student', ...student };
+            initApp();
+        } else {
+            loginError.textContent = 'Invalid Student ID or Password!';
+        }
+    } else {
+        if (idVal === accounts.admin.username && passVal === accounts.admin.password) {
+            currentUser = { role: 'admin', ...accounts.admin };
+            initApp();
+        } else {
+            loginError.textContent = 'Invalid Admin Credentials!';
+        }
+    }
 });
-function renderRequests(){const shown=role==="admin"?requests:requests.filter(r=>r.studentId==="MY-DEMO-ID");$("requestsBody").innerHTML=shown.map(r=>`<tr><td><span style="margin-right:5px">${r.emoji||"📦"}</span>${r.itemName}<br><small style="color:var(--muted)">${role==="admin"?r.student:"Request #"+r.id}</small></td><td>${dateStr(r.requested)}</td><td>${dateStr(r.due)}</td><td><span class="pill ${r.status.toLowerCase()}">${r.status}</span></td>${role==="admin"?`<td>${r.status==="Pending"?`<button class="btn btn-small" onclick="approve(${r.id})">Approve</button> <button class="btn btn-small btn-outline" onclick="reject(${r.id})">Reject</button>`:r.status==="Approved"?`<button class="btn btn-small btn-outline" onclick="returnItem(${r.id})">Mark returned</button>`:"—"}</td>`:""}</tr>`).join("");$("requestsEmpty").style.display=shown.length?"none":"block";$("requestsEmpty").textContent=role==="admin"?"No requests to display.":"No borrowing requests yet. Submit a request and it will appear here.";renderStats()}
-function render(){ $("app").classList.toggle("is-admin",role==="admin");$("avatar").textContent=role==="admin"?"A":"S";$("greeting").textContent=role==="admin"?"Inventory at a glance.":"Borrow what you need."; $("subGreeting").textContent=role==="admin"?"Manage requests, inventory, and item returns.":"Find learning materials and keep your studies moving.";$("itemsHeading").textContent=role==="admin"?"Manage the collection":"Explore the collection";$("requestsHeading").textContent=role==="admin"?"All borrowing requests":"My borrowing requests";$("requestsSub").textContent=role==="admin"?"Review requests and record returned items.":"Keep track of your requests and return dates.";renderStats();renderItems();renderRequests()}
-window.openBorrow=id=>{if(role==="admin"){toast("Switch to Student view to submit a borrowing request.");return}selectedItem=items.find(i=>i.id===id);if(!selectedItem||selectedItem.available<1)return;$("modalEmoji").textContent=selectedItem.emoji;$("modalItemName").textContent=selectedItem.name;$("modalStock").textContent=`${selectedItem.available} available`; $("borrowModal").classList.add("show")};
-function closeModal(){$("borrowModal").classList.remove("show")}
-$("closeModal").onclick=closeModal;$("cancelModal").onclick=closeModal;$("borrowModal").addEventListener("click",e=>{if(e.target===$("borrowModal"))closeModal()});
-$("borrowDate").addEventListener("change",()=>{const d=new Date($("borrowDate").value+"T12:00:00");d.setDate(d.getDate()+1);$("dueDate").min=iso(d);if($("dueDate").value<iso(d))$("dueDate").value=iso(d)});
-$("borrowForm").addEventListener("submit",e=>{e.preventDefault();if(!selectedItem||selectedItem.available<1)return;const due=$("dueDate").value,borrow=$("borrowDate").value;if(due<=borrow){toast("Return date must be after the borrow date.");return}const id=Date.now();requests.unshift({id,itemId:selectedItem.id,itemName:selectedItem.name,emoji:selectedItem.emoji,student:$("studentName").value.trim(),studentId:$("studentId").value.trim(),requested:borrow,due,status:"Pending"});closeModal();save();renderRequests();renderStats();toast("Request submitted! Awaiting administrator approval.");$("borrowForm").reset();$("borrowDate").value=iso(today);$("dueDate").value=iso(minDue)});
-window.approve=id=>{const r=requests.find(x=>x.id===id);if(!r||r.status!=="Pending")return;const i=items.find(x=>x.id===r.itemId);if(!i||i.available<1){toast("No stock is currently available.");return}i.available--;r.status="Approved";save();render();toast("Request approved and inventory updated.")};
-window.reject=id=>{const r=requests.find(x=>x.id===id);if(r&&r.status==="Pending"){r.status="Rejected";save();render();toast("Request rejected.")}};
-window.returnItem=id=>{const r=requests.find(x=>x.id===id);if(r&&r.status==="Approved"){r.status="Returned";const i=items.find(x=>x.id===r.itemId);if(i)i.available=Math.min(i.total,i.available+1);save();render();toast("Return recorded. Item is available again.")}};
-$("roleSwitch").addEventListener("change",e=>{role=e.target.value;render()});$("searchInput").addEventListener("input",renderItems);$("categoryFilter").addEventListener("change",renderItems);
-render();
+
+btnLogout.addEventListener('click', () => {
+    currentUser = null;
+    appContainer.style.display = 'none';
+    loginContainer.style.display = 'flex';
+    loginForm.reset();
+});
+
+// --- INIT APP ---
+function initApp() {
+    loginContainer.style.display = 'none';
+    appContainer.style.display = 'flex';
+
+    displayUserName.textContent = currentUser.name;
+    displayUserRole.textContent = currentUser.role.toUpperCase();
+
+    const adminElements = document.querySelectorAll('.admin-only');
+    const myLoansNav = document.getElementById('nav-my-loans');
+
+    if (currentUser.role === 'admin') {
+        adminElements.forEach(el => el.style.display = 'block');
+        myLoansNav.style.display = 'none';
+    } else {
+        adminElements.forEach(el => el.style.display = 'none');
+        myLoansNav.style.display = 'flex';
+    }
+
+    switchSection('dashboard');
+    renderApp();
+}
+
+navLinks.forEach(link => {
+    link.addEventListener('click', () => {
+        const target = link.getAttribute('data-target');
+        switchSection(target);
+    });
+});
+
+function switchSection(targetId) {
+    navLinks.forEach(l => l.classList.remove('active'));
+    contentSections.forEach(s => s.classList.remove('active'));
+
+    const activeLink = document.querySelector(`.nav-links li[data-target="${targetId}"]`);
+    const activeSection = document.getElementById(targetId);
+
+    if (activeLink) activeLink.classList.add('active');
+    if (activeSection) activeSection.classList.add('active');
+}
+
+// --- RENDER APP & CATALOG ---
+function renderApp(filter = 'all', searchQuery = '') {
+    let totalItems = 0;
+    let availableItems = 0;
+    let totalBorrowed = 0;
+
+    equipmentList.forEach(e => {
+        totalItems += e.totalStock;
+        totalBorrowed += e.borrowed;
+        availableItems += (e.totalStock - e.borrowed);
+    });
+
+    totalEquipmentEl.textContent = totalItems;
+    availableEquipmentEl.textContent = availableItems;
+    borrowedEquipmentEl.textContent = totalBorrowed;
+
+    let filtered = equipmentList.filter(item => {
+        const availableQty = item.totalStock - item.borrowed;
+        const matchesFilter = filter === 'all' || 
+                             (filter === 'Available' && availableQty > 0) || 
+                             (filter === 'Borrowed' && item.borrowed > 0);
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                              item.category.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesFilter && matchesSearch;
+    });
+
+    catalogGrid.innerHTML = '';
+    filtered.forEach(item => catalogGrid.appendChild(createEquipmentCard(item)));
+
+    recentEquipmentList.innerHTML = '';
+    equipmentList.slice(-3).reverse().forEach(item => recentEquipmentList.appendChild(createEquipmentCard(item)));
+
+    if (currentUser && currentUser.role === 'student') {
+        renderStudentLoans();
+    }
+
+    if (currentUser && currentUser.role === 'admin') {
+        renderAdminApprovals();
+    }
+}
+
+function createEquipmentCard(item) {
+    const card = document.createElement('div');
+    card.className = 'equipment-card';
+    
+    const availableQty = item.totalStock - item.borrowed;
+    const isAvailable = availableQty > 0;
+    
+    let actionButtons = '';
+    if (currentUser && currentUser.role === 'student') {
+        actionButtons = `
+            <button class="btn-borrow" ${!isAvailable ? 'disabled' : ''} onclick="openBorrowModal(${item.id})">
+                ${isAvailable ? 'Request Borrow' : 'Out of Stock'}
+            </button>
+        `;
+    } else if (currentUser && currentUser.role === 'admin') {
+        actionButtons = `
+            <div class="card-actions">
+                <div class="admin-stock-controls">
+                    <button class="btn-stock-add" onclick="adjustStock(${item.id}, 1)"><i class="fa-solid fa-plus"></i> Add Stock</button>
+                    <button class="btn-stock-minus" onclick="adjustStock(${item.id}, -1)"><i class="fa-solid fa-minus"></i> Reduce</button>
+                </div>
+                <button class="btn-remove-stock" onclick="removeEquipment(${item.id})"><i class="fa-solid fa-trash"></i> Delete Equipment</button>
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div>
+            <h3>${item.name}</h3>
+            <p>Category: ${item.category}</p>
+            <p class="stock-info">Available: <strong>${availableQty}</strong> / Total Stock: <strong>${item.totalStock}</strong></p>
+            <span class="badge ${isAvailable ? 'available' : 'borrowed'}">${isAvailable ? 'In Stock' : 'Out of Stock'}</span>
+        </div>
+        ${actionButtons}
+    `;
+    return card;
+}
+
+// --- ADMIN STOCK ADD & REMOVE ---
+function openAddEquipmentModal() {
+    addEquipmentModal.style.display = 'flex';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+addEquipmentForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('new-equipment-name').value.trim();
+    const category = document.getElementById('new-equipment-category').value.trim();
+    const stock = parseInt(document.getElementById('new-equipment-stock').value);
+
+    const newEquip = {
+        id: Date.now(),
+        name: name,
+        category: category,
+        totalStock: stock,
+        borrowed: 0
+    };
+
+    equipmentList.push(newEquip);
+    addEquipmentForm.reset();
+    closeModal('add-equipment-modal');
+    alert('Bagong kagamitan ay matagumpay na naidagdag sa stock!');
+    renderApp();
+});
+
+function adjustStock(id, amount) {
+    const item = equipmentList.find(e => e.id === id);
+    if (!item) return;
+
+    if (amount < 0 && (item.totalStock + amount) < item.borrowed) {
+        alert('Hindi maaring bawasan ang stock dahil mas marami pa ang kasalukuyang hiniram kaysa sa natitirang bilang!');
+        return;
+    }
+
+    item.totalStock += amount;
+    if (item.totalStock < 0) item.totalStock = 0;
+    renderApp();
+}
+
+function removeEquipment(id) {
+    const item = equipmentList.find(e => e.id === id);
+    if (!item) return;
+
+    if (item.borrowed > 0) {
+        alert('Hindi maaring tanggalin ang kagamitang ito habang may nakahiram pa.');
+        return;
+    }
+
+    if (confirm(`Sigurado ka bang nais mong tanggalin ang "${item.name}" sa inventory?`)) {
+        equipmentList = equipmentList.filter(e => e.id !== id);
+        renderApp();
+    }
+}
+
+// --- STUDENT LOANS & REQUESTS ---
+function renderStudentLoans() {
+    myLoansTbody.innerHTML = '';
+    const myRequests = requestList.filter(r => r.studentId === currentUser.studentId);
+
+    if (myRequests.length === 0) {
+        myLoansTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No requests or active loans.</td></tr>`;
+        return;
+    }
+
+    myRequests.forEach(req => {
+        const equip = equipmentList.find(e => e.id === req.equipmentId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${equip ? equip.name : 'Unknown'}</strong></td>
+            <td>${equip ? equip.category : '-'}</td>
+            <td><span class="badge ${req.status === 'Approved' ? 'available' : req.status === 'Pending' ? 'pending' : 'borrowed'}">${req.status}</span></td>
+            <td>
+                ${req.status === 'Approved' ? `<button class="btn-return" onclick="returnItem(${req.id})">Return</button>` : '-'}
+            </td>
+        `;
+        myLoansTbody.appendChild(tr);
+    });
+}
+
+function renderAdminApprovals() {
+    adminApprovalTbody.innerHTML = '';
+    const pendingRequests = requestList.filter(r => r.status === 'Pending');
+
+    if (pendingRequests.length === 0) {
+        adminApprovalTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted);">No pending requests.</td></tr>`;
+        return;
+    }
+
+    pendingRequests.forEach(req => {
+        const equip = equipmentList.find(e => e.id === req.equipmentId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${req.studentId}</td>
+            <td><strong>${req.studentName}</strong></td>
+            <td>${equip ? equip.name : 'Unknown'}</td>
+            <td>
+                <button class="btn-approve" onclick="approveRequest(${req.id})">Approve</button>
+                <button class="btn-reject" onclick="rejectRequest(${req.id})">Reject</button>
+            </td>
+        `;
+        adminApprovalTbody.appendChild(tr);
+    });
+}
+
+function openBorrowModal(id) {
+    const item = equipmentList.find(e => e.id === id);
+    if (!item) return;
+    modalEquipmentId.value = item.id;
+    modalEquipmentName.value = item.name;
+    borrowModal.style.display = 'flex';
+}
+
+borrowForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const equipId = parseInt(modalEquipmentId.value);
+
+    requestList.push({
+        id: Date.now(),
+        equipmentId: equipId,
+        studentId: currentUser.studentId,
+        studentName: currentUser.name,
+        status: 'Pending'
+    });
+
+    borrowModal.style.display = 'none';
+    borrowForm.reset();
+    alert('Request submitted! Pending Admin Approval.');
+    renderApp();
+});
+
+function approveRequest(requestId) {
+    const req = requestList.find(r => r.id === requestId);
+    if (req) {
+        const equip = equipmentList.find(e => e.id === req.equipmentId);
+        if (equip && (equip.totalStock - equip.borrowed) > 0) {
+            req.status = 'Approved';
+            equip.borrowed += 1;
+        } else {
+            alert('Hindi ma-approve dahil wala nang available na stock!');
+        }
+    }
+    renderApp();
+}
+
+function rejectRequest(requestId) {
+    const req = requestList.find(r => r.id === requestId);
+    if (req) {
+        req.status = 'Rejected';
+    }
+    renderApp();
+}
+
+function returnItem(requestId) {
+    const req = requestList.find(r => r.id === requestId);
+    if (req) {
+        const equip = equipmentList.find(e => e.id === req.equipmentId);
+        if (equip && equip.borrowed > 0) {
+            equip.borrowed -= 1;
+        }
+        requestList = requestList.filter(r => r.id !== requestId);
+    }
+    renderApp();
+}
+
+renderApp();
