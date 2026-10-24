@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Lending System</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-container" class="login-screen">
+        <div class="login-box">
+            <h2><i class="fa-solid fa-graduation-cap"></i> Equipment Lending System</h2>
+            
+            <div class="role-selector">
+                <button id="tab-student" class="tab-btn active" onclick="switchLoginTab('student')">Student Login</button>
+                <button id="tab-admin" class="tab-btn" onclick="switchLoginTab('admin')">Admin Login</button>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label id="username-label">Student ID</label>
+                    <input type="text" id="login-id" placeholder="Enter Student ID (e.g. 2024-0001)" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" placeholder="Enter password" required>
+                </div>
+                <p id="login-error" class="error-msg"></p>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+            <div class="login-credentials-hint">
+                <small><strong>Demo Accounts:</strong></small><br>
+                <small>Student: ID = <code>2024-0001</code> | Pass = <code>student123</code></small><br>
+                <small>Admin: User = <code>admin</code> | Pass = <code>admin123</code></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fa-solid fa-graduation-cap"></i> ELS</h2>
+                <p>Equipment Lending System</p>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-target="dashboard"><i class="fa-solid fa-chart-pie"></i> Dashboard</li>
+                <li data-target="inventory"><i class="fa-solid fa-boxes-stacked"></i> Equipment Catalog</li>
+                
+                <!-- Student Only Nav -->
+                <li id="nav-my-loans" data-target="my-loans"><i class="fa-solid fa-clipboard-list"></i> My Requests & Items</li>
+                
+                <!-- Admin Only Nav -->
+                <li id="nav-admin-approval" data-target="admin-approvals" class="admin-only"><i class="fa-solid fa-user-check"></i> Pending Approvals</li>
+            </ul>
+            <div class="sidebar-footer">
+                <button id="btn-logout" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="global-search" placeholder="Search equipment...">
+                </div>
+                <div class="user-profile">
+                    <span class="user-avatar"><i class="fa-solid fa-user"></i></span>
+                    <span id="display-user-name" class="username">User</span>
+                    <span id="display-user-role" class="badge-role">Role</span>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <h1>Dashboard Overview</h1>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fa-solid fa-laptop"></i></div>
+                        <div class="stat-info">
+                            <h3 id="total-equipment">0</h3>
+                            <p>Total Items in Stock</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="stat-info">
+                            <h3 id="available-equipment">0</h3>
+                            <p>Available Items</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <div class="stat-info">
+                            <h3 id="borrowed-equipment">0</h3>
+                            <p>Currently Borrowed</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-section">
+                    <h2>Equipment Catalog Preview</h2>
+                    <div id="recent-equipment-list" class="equipment-grid"></div>
+                </div>
+            </section>
+
+            <!-- Equipment Catalog Section -->
+            <section id="inventory" class="content-section">
+                <div class="section-header">
+                    <h1>Equipment Catalog</h1>
+                    <div class="header-actions">
+                        <button id="btn-open-add-equipment" class="btn-primary admin-only" onclick="openAddEquipmentModal()" style="display:none;"><i class="fa-solid fa-plus"></i> Add New Equipment</button>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-filter="all">All</button>
+                            <button class="filter-btn" data-filter="Available">Available</button>
+                            <button class="filter-btn" data-filter="Borrowed">Borrowed</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="catalog-grid" class="equipment-grid"></div>
+            </section>
+
+            <!-- Student: My Loans/Requests Section -->
+            <section id="my-loans" class="content-section">
+                <h1>My Requests & Borrowed Items</h1>
+                <div class="table-responsive">
+                    <table class="loans-table">
+                        <thead>
+                            <tr>
+                                <th>Equipment</th>
+                                <th>Category</th>
+                                <th>Approval Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-loans-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Admin: Pending Approvals Section -->
+            <section id="admin-approvals" class="content-section admin-only">
+                <h1>Pending Request Approvals</h1>
+                <div class="table-responsive">
+                    <table class="loans-table">
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Student Name</th>
+                                <th>Equipment</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-approval-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Borrow Request Modal -->
+    <div id="borrow-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('borrow-modal')">&times;</span>
+            <h2>Request to Borrow</h2>
+            <form id="borrow-form">
+                <input type="hidden" id="modal-equipment-id">
+                <div class="form-group">
+                    <label>Equipment Name</label>
+                    <input type="text" id="modal-equipment-name" readonly>
+                </div>
+                <button type="submit" class="btn-primary">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Equipment Modal (Admin Only) -->
+    <div id="add-equipment-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('add-equipment-modal')">&times;</span>
+            <h2>Add New Equipment Stock</h2>
+            <form id="add-equipment-form">
+                <div class="form-group">
+                    <label>Equipment Name</label>
+                    <input type="text" id="new-equipment-name" placeholder="e.g. HDMI Cable" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="new-equipment-category" placeholder="e.g. Computers / Multimedia" required>
+                </div>
+                <div class="form-group">
+                    <label>Initial Quantity / Stock</label>
+                    <input type="number" id="new-equipment-stock" min="1" value="1" required>
+                </div>
+                <button type="submit" class="btn-primary">Add to Inventory</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
