@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using API.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -10,7 +9,6 @@ namespace SystemAPI.Controllers
     [Route("api/[controller]")]
     public class SystemController : ControllerBase
     {
-        // In-memory data storage (Magsisilbing pansamantalang database para sa demo)
         private static List<Equipment> equipmentList = new List<Equipment>
         {
             new Equipment { Id = 1, Name = "Dell Latitude Laptop", Category = "Computers", TotalStock = 5, Borrowed = 1 },
@@ -25,132 +23,133 @@ namespace SystemAPI.Controllers
             new BorrowRequest { Id = 101, EquipmentId = 3, StudentId = "2024-0001", StudentName = "Juan Dela Cruz", Status = "Approved", RequestDate = DateTime.Now }
         };
 
-        // ----------------------------------------------------
-        // 1. EQUIPMENT ENDPOINTS
-        // ----------------------------------------------------
-
-        // GET: api/system/equipment (Kunin ang lahat ng kagamitan)
+        // --- EQUIPMENT ENDPOINTS ---
         [HttpGet("equipment")]
-        public IActionResult GetEquipment()
-        {
-            return Ok(equipmentList);
-        }
+        public IActionResult GetEquipment() => Ok(equipmentList);
 
-        // POST: api/system/equipment (Magdagdag ng bagong kagamitan - Admin)
         [HttpPost("equipment")]
         public IActionResult AddEquipment([FromBody] Equipment newEquip)
         {
-            newEquip.Id = (int)DateTime.Now.Ticks;
+            newEquip.Id = new Random().Next(1000, 9999);
             newEquip.Borrowed = 0;
             equipmentList.Add(newEquip);
-            return Ok(new { message = "Matagumpay na naidagdag ang kagamitan!", equipment = newEquip });
+            return Ok(new { message = "Equipment added successfully!", equipment = newEquip });
         }
 
-        // PUT: api/system/equipment/{id}/stock (Mag-adjust ng stock +1 o -1 - Admin)
         [HttpPut("equipment/{id}/stock")]
         public IActionResult AdjustStock(int id, [FromBody] StockAdjustmentModel model)
         {
             var item = equipmentList.FirstOrDefault(e => e.Id == id);
-            if (item == null) return NotFound(new { message = "Hindi nahanap ang kagamitan." });
+            if (item == null) return NotFound(new { message = "Equipment not found." });
 
             if (model.Amount < 0 && (item.TotalStock + model.Amount) < item.Borrowed)
             {
-                return BadRequest(new { message = "Hindi maaring bawasan ang stock dahil mas marami pa ang kasalukuyang hiniram!" });
+                return BadRequest(new { message = "Cannot decrease stock below current borrowed count!" });
             }
 
             item.TotalStock += model.Amount;
             if (item.TotalStock < 0) item.TotalStock = 0;
 
-            return Ok(new { message = "Na-update ang stock!", item });
+            return Ok(new { message = "Stock updated!", item });
         }
 
-        // DELETE: api/system/equipment/{id} (Mag-delete ng kagamitan - Admin)
         [HttpDelete("equipment/{id}")]
         public IActionResult DeleteEquipment(int id)
         {
             var item = equipmentList.FirstOrDefault(e => e.Id == id);
-            if (item == null) return NotFound(new { message = "Hindi nahanap ang kagamitan." });
+            if (item == null) return NotFound(new { message = "Equipment not found." });
 
             if (item.Borrowed > 0)
             {
-                return BadRequest(new { message = "Hindi maaring tanggalin ang kagamitang ito habang may kasalukuyang nakahiram." });
+                return BadRequest(new { message = "Cannot delete equipment while items are currently borrowed." });
             }
 
             equipmentList.Remove(item);
-            return Ok(new { message = "Matagumpay na natanggal ang kagamitan sa inventory!" });
+            return Ok(new { message = "Equipment deleted!" });
         }
 
-        // ----------------------------------------------------
-        // 2. BORROW REQUESTS ENDPOINTS
-        // ----------------------------------------------------
-
-        // GET: api/system/requests (Kunin ang lahat ng requests)
+        // --- BORROW REQUESTS ENDPOINTS ---
         [HttpGet("requests")]
-        public IActionResult GetRequests()
-        {
-            return Ok(requestList);
-        }
+        public IActionResult GetRequests() => Ok(requestList);
 
-        // POST: api/system/requests (Mag-submit ng hiram ang estudyante)
         [HttpPost("requests")]
         public IActionResult CreateRequest([FromBody] BorrowRequest req)
         {
-            req.Id = (int)DateTime.Now.Ticks;
+            req.Id = new Random().Next(10000, 99999);
             req.Status = "Pending";
             req.RequestDate = DateTime.Now;
             requestList.Add(req);
-            return Ok(new { message = "Naipadala na ang request sa Admin!", request = req });
+            return Ok(new { message = "Request submitted!", request = req });
         }
 
-        // PUT: api/system/requests/{id}/approve (Admin Appove)
         [HttpPut("requests/{id}/approve")]
         public IActionResult ApproveRequest(int id)
         {
             var req = requestList.FirstOrDefault(r => r.Id == id);
-            if (req == null) return NotFound(new { message = "Hindi nahanap ang request." });
+            if (req == null) return NotFound(new { message = "Request not found." });
 
             var equip = equipmentList.FirstOrDefault(e => e.Id == req.EquipmentId);
             if (equip == null || (equip.TotalStock - equip.Borrowed) <= 0)
             {
-                return BadRequest(new { message = "Hindi ma-approve dahil wala nang available na stock!" });
+                return BadRequest(new { message = "No available stock to approve this request!" });
             }
 
             req.Status = "Approved";
             equip.Borrowed += 1;
 
-            return Ok(new { message = "Matagumpay na na-approve ang request!" });
+            return Ok(new { message = "Request approved!" });
         }
 
-        // PUT: api/system/requests/{id}/reject (Admin Reject)
         [HttpPut("requests/{id}/reject")]
         public IActionResult RejectRequest(int id)
         {
             var req = requestList.FirstOrDefault(r => r.Id == id);
-            if (req == null) return NotFound(new { message = "Hindi nahanap ang request." });
+            if (req == null) return NotFound(new { message = "Request not found." });
 
             req.Status = "Rejected";
-            return Ok(new { message = "Na-reject ang request." });
+            return Ok(new { message = "Request rejected." });
         }
 
-        // PUT: api/system/requests/{id}/return (Return Item)
         [HttpPut("requests/{id}/return")]
-        public IActionResult ReturnItem(int id)
+        public IActionResult ReturnEquipment(int id)
         {
             var req = requestList.FirstOrDefault(r => r.Id == id);
-            if (req == null) return NotFound(new { message = "Hindi nahanap ang record." });
+            if (req == null) return NotFound(new { message = "Request not found." });
 
-            var equip = equipmentList.FirstOrDefault(e => e.Id == req.EquipmentId);
-            if (equip != null && equip.Borrowed > 0)
+            if (req.Status == "Approved")
             {
-                equip.Borrowed -= 1;
+                var equip = equipmentList.FirstOrDefault(e => e.Id == req.EquipmentId);
+                if (equip != null && equip.Borrowed > 0)
+                {
+                    equip.Borrowed -= 1;
+                }
+                req.Status = "Returned";
             }
 
-            requestList.Remove(req);
-            return Ok(new { message = "Matagumpay na naibalik ang kagamitan!" });
+            return Ok(new { message = "Item returned successfully!" });
         }
     }
 
-    // Supplementary class para sa pagpasa ng stock adjustment value sa JSON body
+    // --- DATA MODELS ---
+    public class Equipment
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public int TotalStock { get; set; }
+        public int Borrowed { get; set; }
+    }
+
+    public class BorrowRequest
+    {
+        public int Id { get; set; }
+        public int EquipmentId { get; set; }
+        public string StudentId { get; set; } = string.Empty;
+        public string StudentName { get; set; } = string.Empty;
+        public string Status { get; set; } = "Pending";
+        public DateTime RequestDate { get; set; }
+    }
+
     public class StockAdjustmentModel
     {
         public int Amount { get; set; }
