@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using SystemAPI.Models;
 
 namespace SystemAPI.Controllers
 {
@@ -127,31 +128,5 @@ namespace SystemAPI.Controllers
 
             return Ok(new { message = "Item returned successfully!" });
         }
-    }
-
-
-
-    public class Equipment
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Category { get; set; } = string.Empty;
-        public int TotalStock { get; set; }
-        public int Borrowed { get; set; }
-    }
-
-    public class BorrowRequest
-    {
-        public int Id { get; set; }
-        public int EquipmentId { get; set; }
-        public string StudentId { get; set; } = string.Empty;
-        public string StudentName { get; set; } = string.Empty;
-        public string Status { get; set; } = "Pending";
-
-    }
-
-    public class StockAdjustmentModel
-    {
-        public int Amount { get; set; }
     }
 }
