@@ -1,6 +1,6 @@
 const API_BASE_URL = 'http://localhost:5174/api/System';
 let currentRole = 'student';
-let currentUser = { id: '2024-0001', name: 'Juan Dela Cruz' };
+let currentUser = { id: 's2025102331', name: 'Ace' };
 let allEquipment = [];
 
 // 1. SWITCH LOGIN TABS
@@ -15,7 +15,7 @@ function switchLoginTab(role) {
         studentBtn?.classList.add('active');
         adminBtn?.classList.remove('active');
         if (label) label.innerText = 'Student ID';
-        if (loginIdInput) loginIdInput.placeholder = 'Enter Student ID (e.g. 2024-0001)';
+        if (loginIdInput) loginIdInput.placeholder = 'Enter Student ID (e.g. s2025102331)';
     } else {
         adminBtn?.classList.add('active');
         studentBtn?.classList.remove('active');
@@ -292,14 +292,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const passInput = document.getElementById('login-password')?.value.trim();
             const errorMsg = document.getElementById('login-error');
 
-            const isValidStudent = (currentRole === 'student' && idInput === '2024-0001' && passInput === 'student123');
+            const isValidStudent = (currentRole === 'student' && idInput === 's2025102331' && passInput === 'student123');
             const isValidAdmin = (currentRole === 'admin' && idInput === 'admin' && passInput === 'admin123');
 
             if (isValidStudent || isValidAdmin) {
                 if (errorMsg) errorMsg.innerText = '';
                 currentUser = {
                     id: idInput,
-                    name: currentRole === 'student' ? 'Juan Dela Cruz' : 'Administrator'
+                    name: currentRole === 'student' ? 'Ace' : 'Administrator'
                 };
 
                 document.getElementById('login-container').style.display = 'none';

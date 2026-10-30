@@ -11,16 +11,16 @@ namespace SystemAPI.Controllers
     {
         private static List<Equipment> equipmentList = new List<Equipment>
         {
-            new Equipment { Id = 1, Name = "Dell Latitude Laptop", Category = "Computers", TotalStock = 5, Borrowed = 1 },
-            new Equipment { Id = 2, Name = "Canon DSLR Camera", Category = "Media", TotalStock = 3, Borrowed = 0 },
-            new Equipment { Id = 3, Name = "Epson Multimedia Projector", Category = "Classroom", TotalStock = 2, Borrowed = 1 },
-            new Equipment { Id = 4, Name = "Lab Quest Physics Sensor", Category = "Science", TotalStock = 4, Borrowed = 0 },
-            new Equipment { Id = 5, Name = "Basketball (Official Size)", Category = "Sports", TotalStock = 10, Borrowed = 2 }
+            new Equipment { Id = 1, Name = "Dell Latitude Laptop", TotalStock = 5, Borrowed = 1 },
+            new Equipment { Id = 2, Name = "Canon DSLR Camera", TotalStock = 3, Borrowed = 0 },
+            new Equipment { Id = 3, Name = "Epson Multimedia Projector", TotalStock = 2, Borrowed = 1 },
+            new Equipment { Id = 4, Name = "Lab Quest Physics Sensor", TotalStock = 4, Borrowed = 0 },
+            new Equipment { Id = 5, Name = "Basketball (Official Size)", TotalStock = 10, Borrowed = 2 }
         };
 
         private static List<BorrowRequest> requestList = new List<BorrowRequest>
         {
-            new BorrowRequest { Id = 101, EquipmentId = 3, StudentId = "2024-0001", StudentName = "Juan Dela Cruz", Status = "Approved", RequestDate = DateTime.Now }
+            new BorrowRequest { Id = 101, EquipmentId = 3, StudentId = "s2025102331", StudentName = "Ace", Status = "Approved" }
         };
 
         // --- EQUIPMENT ENDPOINTS ---
@@ -77,7 +77,6 @@ namespace SystemAPI.Controllers
         {
             req.Id = new Random().Next(10000, 99999);
             req.Status = "Pending";
-            req.RequestDate = DateTime.Now;
             requestList.Add(req);
             return Ok(new { message = "Request submitted!", request = req });
         }
@@ -130,7 +129,8 @@ namespace SystemAPI.Controllers
         }
     }
 
-    // --- DATA MODELS ---
+
+
     public class Equipment
     {
         public int Id { get; set; }
@@ -147,7 +147,7 @@ namespace SystemAPI.Controllers
         public string StudentId { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending";
-        public DateTime RequestDate { get; set; }
+
     }
 
     public class StockAdjustmentModel
