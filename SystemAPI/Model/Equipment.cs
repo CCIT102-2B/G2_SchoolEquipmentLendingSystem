@@ -11,4 +11,9 @@ namespace SystemAPI.Models
         // Computed Property: Malalaman kung ilan pa ang available
         public int AvailableStock => TotalStock - Borrowed;
     }
+    
+    public class StockAdjustmentModel
+{
+    public int Amount { get; set; }
+}
 }
