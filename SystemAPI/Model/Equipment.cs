@@ -1,4 +1,4 @@
-namespace API.Models
+namespace SystemAPI.Models
 {
     public class Equipment
     {

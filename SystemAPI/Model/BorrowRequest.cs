@@ -1,4 +1,4 @@
-namespace API.Models
+namespace SystemAPI.Models
 {
     public class BorrowRequest
     {
@@ -9,6 +9,5 @@ namespace API.Models
         
         // Status values: "Pending", "Approved", "Rejected", "Returned"
         public string Status { get; set; } = "Pending";
-        public DateTime RequestDate { get; set; } = DateTime.Now;
     }
 }
