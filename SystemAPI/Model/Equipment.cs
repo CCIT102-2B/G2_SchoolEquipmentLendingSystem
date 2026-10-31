@@ -8,7 +8,7 @@ namespace SystemAPI.Models
         public int TotalStock { get; set; }
         public int Borrowed { get; set; }
 
-        // Computed Property: Malalaman kung ilan pa ang available
+        // Computed Property: Malalaman kung ilan pa ang available NA STOCKK
         public int AvailableStock => TotalStock - Borrowed;
     }
     
