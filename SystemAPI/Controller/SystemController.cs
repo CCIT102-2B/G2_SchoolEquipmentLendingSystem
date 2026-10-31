@@ -70,7 +70,7 @@ namespace SystemAPI.Controllers
         }
 
         // --- BORROW REQUESTS ENDPOINTS ---
-        [HttpGet("requests")]
+        [HttpGet("requests")]    
         public IActionResult GetRequests() => Ok(requestList);
 
         [HttpPost("requests")]

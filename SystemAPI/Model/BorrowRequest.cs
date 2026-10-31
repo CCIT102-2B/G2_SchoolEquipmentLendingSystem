@@ -7,7 +7,7 @@ namespace SystemAPI.Models
         public string StudentId { get; set; } = string.Empty;
         public string StudentName { get; set; } = string.Empty;
         
-        // Status values: "Pending", "Approved", "Rejected", "Returned"
+        // Status values kunyare "Pending", "Approved", "Rejected", "Returned"
         public string Status { get; set; } = "Pending";
     }
 }
