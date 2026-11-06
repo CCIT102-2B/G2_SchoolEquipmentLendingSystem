@@ -2,6 +2,8 @@ const API_BASE_URL = 'http://localhost:5174/api/System';
 let currentRole = 'student';
 let currentUser = { id: 's2025102331', name: 'Ace' };
 let allEquipment = [];
+let equipmentChart = null;
+let breakdownChart = null;
 
 // 1. SWITCH LOGIN TABS
 function switchLoginTab(role) {
@@ -67,7 +69,25 @@ function applyRolePermissions(role) {
     }
 }
 
-// 4. FETCH DATA FROM API
+// 4. SEARCH FUNCTIONALITY (Nasa Labas Na)
+function setupSearch() {
+    const searchInput = document.getElementById('global-search');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+
+        const filteredEquipment = allEquipment.filter(item => {
+            const nameMatch = item.name ? item.name.toLowerCase().includes(searchTerm) : false;
+            const categoryMatch = item.category ? item.category.toLowerCase().includes(searchTerm) : false;
+            return nameMatch || categoryMatch;
+        });
+
+        renderEquipmentGrid('catalog-grid', filteredEquipment);
+    });
+}
+
+// 5. FETCH DATA FROM API
 async function refreshAllData() {
     await loadEquipmentData();
     await loadRequestsData();
@@ -80,7 +100,6 @@ async function loadEquipmentData() {
 
         allEquipment = await response.json();
 
-        // Calculate Totals based on C# Model (totalStock, borrowed)
         let totalItems = 0;
         let totalBorrowed = 0;
 
@@ -95,11 +114,125 @@ async function loadEquipmentData() {
         document.getElementById('available-equipment').innerText = totalAvail >= 0 ? totalAvail : 0;
         document.getElementById('borrowed-equipment').innerText = totalBorrowed;
 
-        renderEquipmentGrid('recent-equipment-list', allEquipment.slice(0, 4));
+        // Render Analytics Charts & Lists
+        updateOverallChart(totalAvail >= 0 ? totalAvail : 0, totalBorrowed);
+        updateBreakdownChart(allEquipment);
+        renderInventoryStatusLists(allEquipment);
+
         renderEquipmentGrid('catalog-grid', allEquipment);
 
     } catch (error) {
         console.error('Error fetching equipment:', error);
+    }
+}
+
+// 5.1 OVERALL DOUGHNUT CHART
+function updateOverallChart(availableCount, borrowedCount) {
+    const canvas = document.getElementById('equipmentStatusChart');
+    if (!canvas) return;
+
+    if (equipmentChart) equipmentChart.destroy();
+
+    equipmentChart = new Chart(canvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Available Stock', 'Currently Borrowed'],
+            datasets: [{
+                data: [availableCount, borrowedCount],
+                backgroundColor: ['#10B981', '#F59E0B'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+
+// 5.2 STACKED BAR CHART
+function updateBreakdownChart(items) {
+    const canvas = document.getElementById('equipmentBreakdownChart');
+    if (!canvas) return;
+
+    if (breakdownChart) breakdownChart.destroy();
+
+    const labels = items.map(item => item.name);
+    const availableData = items.map(item => Math.max(0, (item.totalStock || 0) - (item.borrowed || 0)));
+    const borrowedData = items.map(item => item.borrowed || 0);
+
+    breakdownChart = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Available',
+                    data: availableData,
+                    backgroundColor: '#10B981'
+                },
+                {
+                    label: 'Borrowed',
+                    data: borrowedData,
+                    backgroundColor: '#F59E0B'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            },
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+
+// 5.3 LIVE STATUS LISTS
+function renderInventoryStatusLists(items) {
+    const borrowedContainer = document.getElementById('borrowed-items-list');
+    const availableContainer = document.getElementById('available-items-list');
+
+    if (!borrowedContainer || !availableContainer) return;
+
+    const borrowedItems = items.filter(item => (item.borrowed || 0) > 0);
+    const availableItems = items.filter(item => ((item.totalStock || 0) - (item.borrowed || 0)) > 0);
+
+    // Render Borrowed List
+    if (borrowedItems.length === 0) {
+        borrowedContainer.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">No items currently borrowed.</p>';
+    } else {
+        borrowedContainer.innerHTML = borrowedItems.map(item => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #fffbe8; border-left: 4px solid #f59e0b; margin-bottom: 8px; border-radius: 6px;">
+                <span style="font-weight: 600; color: #334155;">${item.name}</span>
+                <span style="background: #fef3c7; color: #d97706; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">
+                    ${item.borrowed} borrowed
+                </span>
+            </div>
+        `).join('');
+    }
+
+    // Render Available List
+    if (availableItems.length === 0) {
+        availableContainer.innerHTML = '<p style="color: #64748b; font-size: 0.9rem;">No items available in stock.</p>';
+    } else {
+        availableContainer.innerHTML = availableItems.map(item => {
+            const availStock = (item.totalStock || 0) - (item.borrowed || 0);
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #ecfdf5; border-left: 4px solid #10b981; margin-bottom: 8px; border-radius: 6px;">
+                    <span style="font-weight: 600; color: #334155;">${item.name}</span>
+                    <span style="background: #d1fae5; color: #059669; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">
+                        ${availStock} available
+                    </span>
+                </div>
+            `;
+        }).join('');
     }
 }
 
@@ -116,7 +249,7 @@ async function loadRequestsData() {
     }
 }
 
-// 5. RENDER EQUIPMENT CARDS
+// 6. RENDER EQUIPMENT CARDS
 function renderEquipmentGrid(containerId, items) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -158,7 +291,7 @@ function renderEquipmentGrid(containerId, items) {
     }).join('');
 }
 
-// 6. RENDER TABLES
+// 7. RENDER TABLES
 function renderStudentLoansTable(requests) {
     const tbody = document.getElementById('my-loans-tbody');
     if (!tbody) return;
@@ -212,7 +345,7 @@ function renderAdminApprovalsTable(requests) {
     }).join('');
 }
 
-// 7. MODALS AND ACTIONS
+// 8. MODALS AND ACTIONS
 function openBorrowModal(id, name) {
     document.getElementById('modal-equipment-id').value = id;
     document.getElementById('modal-equipment-name').value = name;
@@ -279,9 +412,10 @@ async function returnEquipment(id) {
     } catch (e) { console.error(e); }
 }
 
-// 8. INITIALIZATION
+// 9. INITIALIZATION (DOM CONTENT LOADED)
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
+    setupSearch(); // Gagana na nang maayos!
 
     // Login Form Submit
     const loginForm = document.getElementById('login-form');
