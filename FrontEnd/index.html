@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -77,38 +79,71 @@
                 </div>
             </header>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard" class="content-section active">
-                <h1>Dashboard Overview</h1>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><i class="fa-solid fa-laptop"></i></div>
-                        <div class="stat-info">
-                            <h3 id="total-equipment">0</h3>
-                            <p>Total Items in Stock</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
-                        <div class="stat-info">
-                            <h3 id="available-equipment">0</h3>
-                            <p>Available Items</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><i class="fa-solid fa-clock-rotate-left"></i></div>
-                        <div class="stat-info">
-                            <h3 id="borrowed-equipment">0</h3>
-                            <p>Currently Borrowed</p>
-                        </div>
-                    </div>
-                </div>
+<!-- Dashboard Section -->
+<section id="dashboard" class="content-section active">
+    <h1>Dashboard Overview</h1>
+    
+    <!-- Top Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-laptop"></i></div>
+            <div class="stat-info">
+                <h3 id="total-equipment">0</h3>
+                <p>Total Items in Stock</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-info">
+                <h3 id="available-equipment">0</h3>
+                <p>Available Items</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="stat-info">
+                <h3 id="borrowed-equipment">0</h3>
+                <p>Currently Borrowed</p>
+            </div>
+        </div>
+    </div>
 
-                <div class="recent-section">
-                    <h2>Equipment Catalog Preview</h2>
-                    <div id="recent-equipment-list" class="equipment-grid"></div>
-                </div>
-            </section>
+    <!-- Analytics & Chart Section -->
+    <div class="dashboard-charts-grid" style="margin-top: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        
+        <!-- Chart 1: Overall Stock Tally (Doughnut Chart) -->
+        <div class="chart-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #1e293b;"><i class="fa-solid fa-chart-pie"></i> Inventory Tally</h3>
+            <canvas id="equipmentStatusChart"></canvas>
+        </div>
+
+        <!-- Chart 2: Per-Equipment Available vs Borrowed Breakdown (Bar Chart) -->
+        <div class="chart-card" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #1e293b;"><i class="fa-solid fa-chart-column"></i> Stock Breakdown per Item</h3>
+            <canvas id="equipmentBreakdownChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Live Status Lists: Currently Borrowed & Available Equipment -->
+    <div class="inventory-status-lists" style="margin-top: 25px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        
+        <!-- Currently Borrowed Equipment List -->
+        <div class="status-box" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #d97706; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-hand-holding-hand"></i> Currently Borrowed Items
+            </h3>
+            <div id="borrowed-items-list" class="status-items-container"></div>
+        </div>
+
+        <!-- Available Stock List -->
+        <div class="status-box" style="background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <h3 style="margin-bottom: 15px; font-size: 1.1rem; color: #059669; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-boxes-packing"></i> Available Stock Items
+            </h3>
+            <div id="available-items-list" class="status-items-container"></div>
+        </div>
+    </div>
+</section>
 
             <!-- Equipment Catalog Section -->
             <section id="inventory" class="content-section">
